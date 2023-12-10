@@ -1,0 +1,3 @@
+[submodule "libs/wsserver"]
+	path = libs/wsserver
+	url = git@github.com:ert-tiroir/wsserver.git

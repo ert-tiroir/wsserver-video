@@ -36,8 +36,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+
+    <script src="wsvideo-player/player.js"></script>
 </head>
 <body>
-    
+    <video controls muted></video>
+    <script>
+        // create the web socket
+        let socket  = new WebSocket("ws://127.0.0.1:5420");
+
+        // create the listener for the video flux
+        let wsvideo = new WSVideo(socket, "flux.mp4", 'video/mp4; codecs="avc1.64001e"', 0);
+
+        // attach the video listener to the video object
+        wsvideo.attach(document.querySelector("video"))
+    </script>
 </body>
 </html>

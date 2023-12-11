@@ -13,6 +13,7 @@ copysrc:
 
 	cp example.cpp build
 	cp -r libs/wsserver/wsserver build/
+	cp -r wsvideo build/
 
 compile:
 	g++ -o build/out -I./build $(SOURCES)

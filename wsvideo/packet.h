@@ -1,9 +1,8 @@
 
 /**********************************************************************************/
-/* example.cpp                                                                    */
+/* wsvideo/packet.h                                                               */
 /*                                                                                */
-/* This file contains an example on how to create a simple web socket live        */
-/* broadcasting service from an mp4 file                                          */
+/* This file contains the details of a web socket video packet                    */
 /**********************************************************************************/
 /*                  This file is part of the ERT-Tiroir project                   */
 /*                      github.com/ert-tiroir/wsserver-video                      */
@@ -31,38 +30,15 @@
 /* SOFTWARE.                                                                      */
 /**********************************************************************************/
 
-#include <fstream>
-#include <iostream>
-#include <sstream>
+#include <string>
 
 using namespace std;
 
-#include <wsserver/server.h>
-#include <wsvideo/broadcaster.h>
+struct VideoPacket {
+private:
+    string buffer;
+public:
+    VideoPacket (string buffer);
 
-int main () {
-    printf("Creating web socket server...\n");
-    WebSocketServer server;
-    server.init(5420);
-
-    printf("Creating broadcast\n");
-    VideoBroadcaster broadcast (&server, "flux.mp4");
-    
-    std::ifstream     file("test.mp4");
-    std::stringstream buffer;
-    buffer << file.rdbuf();
-
-    printf("Writing initial packet...\n");
-    broadcast.sendPacket(buffer.str());
-
-    while (true) {
-        string buffer; getline(cin, buffer);
-
-        if (buffer == "listen") while (!server.listen()) continue ;
-        if (buffer == "exit") break ;
-
-        broadcast.tick();
-    }
-
-    server.close();
-}
+    string getBuffer ();
+};

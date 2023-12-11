@@ -1,9 +1,8 @@
 
 /**********************************************************************************/
-/* example.cpp                                                                    */
+/* wsvideo/broadcaster.cpp                                                        */
 /*                                                                                */
-/* This file contains an example on how to create a simple web socket live        */
-/* broadcasting service from an mp4 file                                          */
+/* This file contains the implementation of the web socket broadcaster            */
 /**********************************************************************************/
 /*                  This file is part of the ERT-Tiroir project                   */
 /*                      github.com/ert-tiroir/wsserver-video                      */
@@ -31,38 +30,74 @@
 /* SOFTWARE.                                                                      */
 /**********************************************************************************/
 
-#include <fstream>
-#include <iostream>
-#include <sstream>
-
-using namespace std;
-
-#include <wsserver/server.h>
 #include <wsvideo/broadcaster.h>
 
-int main () {
-    printf("Creating web socket server...\n");
-    WebSocketServer server;
-    server.init(5420);
+/**
+ * Create a new broadcaster
+ * 
+ * @param server the web socket server to broadcast on
+ * @param flux_name the name of the video flux
+ */
+VideoBroadcaster::VideoBroadcaster (WebSocketServer* server, string flux_name) {
+    this->flux_name = flux_name;
+    this->server    = server;
+}
 
-    printf("Creating broadcast\n");
-    VideoBroadcaster broadcast (&server, "flux.mp4");
-    
-    std::ifstream     file("test.mp4");
-    std::stringstream buffer;
-    buffer << file.rdbuf();
+/**
+ * Tick the broadcast, sends necessary packets that were missed by clients
+ * that were late.
+ */
+void VideoBroadcaster::tick () {
+    sendToNewClients();
+}
 
-    printf("Writing initial packet...\n");
-    broadcast.sendPacket(buffer.str());
+/**
+ * Send all the packets to the new clients
+ */
+void VideoBroadcaster::sendToNewClients () {
+    /* Send all the packets to the new clients */
+    for (; this->last_joined_count < server->clientCount(); this->last_joined_count ++)
+        this->sendAllPackets( this->last_joined_count );
+}
 
-    while (true) {
-        string buffer; getline(cin, buffer);
+/**
+ * Create a new packet, and send it to the old clients, new clients will receive it
+ * during the tick procedure
+ */
+void VideoBroadcaster::sendPacket(string buffer) {
+    // append flux name
+    string tbuffer = "video: " + flux_name + ": " + buffer;
 
-        if (buffer == "listen") while (!server.listen()) continue ;
-        if (buffer == "exit") break ;
+    // create packet
+    VideoPacket* packet = new VideoPacket(tbuffer);
 
-        broadcast.tick();
-    }
+    packets.push_back(packet);
 
-    server.close();
+    // send it to all the clients that are already connected
+    int iP = packets.size() - 1;
+    for (int iC = 0; iC < this->last_joined_count; iC ++)
+        sendPacket(iP, iC);
+}
+
+/**
+ * Send all the packets to a client
+ * 
+ * @param idClient the id of the client that will receive all the packets
+ */
+void VideoBroadcaster::sendAllPackets (int idClient) {
+    for (int iP = 0; iP < packets.size(); iP ++)
+        sendPacket(iP, idClient);
+}
+
+/**
+ * Send a packet to a client
+ * 
+ * @param idPacket the id of the packet
+ * @param idClient the id of the client
+ */
+void VideoBroadcaster::sendPacket (int idPacket, int idClient) {
+    WebSocketClient* client = server->getClient(idClient);
+
+    string buffer = packets[idPacket]->getBuffer();
+    client->send( buffer, 2 );
 }
